@@ -1,0 +1,50 @@
+
+> r3f-ai-language-teacher@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.32
+  - Local:        http://localhost:3000
+  - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 2s
+ ○ Compiling /exam ...
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled /exam in 4.9s (522 modules)
+ GET /exam 200 in 5326ms
+ ✓ Compiled in 389ms (247 modules)
+ ⚠ Cross origin request detected from 194.238.19.176 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ ✓ Compiled /api/course/[id] in 326ms (289 modules)
+ ✓ Compiled (321 modules)
+Using transferred session from cookie: {
+  user: {
+    id: '4cb53876-738a-4b54-9a63-8f6629289b4a',
+    username: 'Vivek',
+    email: 'sapra@gmail.com',
+    role: 'student'
+  },
+  courseId: '1',
+  timestamp: 1758627466009,
+  source: 'profai-coach-transfer'
+}
+ GET /api/session 200 in 614ms
+ GET /favicon.ico 200 in 657ms
+Using transferred session from cookie: {
+  user: {
+    id: '4cb53876-738a-4b54-9a63-8f6629289b4a',
+    username: 'Vivek',
+    email: 'sapra@gmail.com',
+    role: 'student'
+  },
+  courseId: '1',
+  timestamp: 1758627466009,
+  source: 'profai-coach-transfer'
+}
+ GET /api/session 200 in 10ms
+ GET /api/course/1 200 in 1686ms
+ ○ Compiling / ...
+ ✓ Compiled / in 10.7s (2651 modules)
+ GET / 200 in 2358ms

@@ -48,17 +48,37 @@ export const ChatProvider = ({ children }) => {
 
   // Convert HTTP backend URL to WebSocket URL
   const getWebSocketUrl = () => {
-    if (!backendUrl) return 'ws://localhost:8765';
-    
     try {
-      const url = new URL(backendUrl);
-      const wsProtocol = 'ws:';
-      return `${wsProtocol}//${url.host}`;
-    } catch (error) {
-      console.error('Error parsing backend URL:', error);
-      return 'ws://localhost:8765';
+    if (typeof window !== "undefined" && window.location && window.location.host) {
+      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+      // use same-host under /ws/ path
+      return `${proto}//${window.location.host}/ws/`;
     }
-  };
+  } catch (e) {
+    // fall through to env parsing
+    console.warn("Could not build same-origin WS URL, will try env:", e);
+  }
+
+  // Fallback: parse the backendUrl env var if present
+  if (backendUrl) {
+    try {
+      // If env already contains ws:// or wss://, use it as-is
+      if (/^wss?:\/\//i.test(backendUrl)) {
+        return backendUrl;
+      }
+      // If env contains http(s)://host:port or host:port, convert to ws(s) accordingly
+      const maybe = backendUrl.startsWith("http") ? new URL(backendUrl) : new URL(`http://${backendUrl}`);
+      const wsProto = maybe.protocol === "https:" ? "wss:" : "ws:";
+      const path = maybe.pathname && maybe.pathname !== "/" ? maybe.pathname.replace(/\/+$/, "") : "";
+      return `${wsProto}//${maybe.host}${path}/`;
+    } catch (err) {
+      console.error("Error parsing NEXT_PUBLIC_NEXT_WEB_API for websocket, falling back to localhost:", err);
+    }
+  }
+
+  // last resort (dev)
+  return (typeof window !== "undefined" && window.location && window.location.protocol === "https:") ? "wss://localhost:8765/" : "ws://localhost:8765/";
+};
 
   // WebSocket message handlers
   const handleWebSocketMessage = useCallback((data) => {

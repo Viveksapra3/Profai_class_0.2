@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "@/hooks/useSession";
 
-export default function ApiLandingPage() {
+function ApiLandingContent() {
   const search = useSearchParams();
   const router = useRouter();
   const courseId = useMemo(() => search?.get("courseId") || "", [search]);
@@ -61,5 +61,18 @@ export default function ApiLandingPage() {
         <a href="/session" style={{textDecoration:"underline"}}>Open Session Inspector</a>
       </div>
     </div>
+  );
+}
+
+export default function ApiLandingPage() {
+  return (
+    <Suspense fallback={<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f6f7fb"}}>
+      <div>
+        <div style={{height:8,width:120,background:"#e5e7eb",borderRadius:999,marginBottom:12}}></div>
+        <div style={{height:48,width:280,background:"#e5e7eb",borderRadius:12}}></div>
+      </div>
+    </div>}>
+      <ApiLandingContent />
+    </Suspense>
   );
 }

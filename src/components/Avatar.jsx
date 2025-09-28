@@ -511,6 +511,18 @@ export function Avatar(props) {
       setFacialExpression(message.facialExpression || "smile");
       setLipsync(message.lipsync);
       
+      // Verify lipsync data
+      if (message.lipsync) {
+        console.log('🎭 Avatar received lipsync data:', {
+          mouthCues: message.lipsync.mouthCues?.length || 0,
+          duration: message.lipsync.metadata?.duration || 'unknown',
+          type: message.lipsync.metadata?.type || 'unknown'
+        });
+        console.log('🎭 First few visemes:', message.lipsync.mouthCues?.slice(0, 5).map(cue => `${cue.value}(${cue.start.toFixed(2)}-${cue.end.toFixed(2)})`).join(', '));
+      } else {
+        console.log('⚠️ No lipsync data received for chunk');
+      }
+      
       // Play audio chunk immediately
       if (message.audio) {
         try {
@@ -779,7 +791,11 @@ export function Avatar(props) {
     const appliedMorphTargets = [];
     if (message && lipsync && lipsync.mouthCues && audio && !audio.paused && !audio.ended) {
       const currentAudioTime = audio.currentTime;
-      console.log(`🎵 Lipsync: currentTime=${currentAudioTime.toFixed(2)}s, mouthCues=${lipsync.mouthCues.length}`);
+      
+      // Only log every 10th frame to reduce console spam
+      if (Math.floor(currentAudioTime * 10) % 10 === 0) {
+        console.log(`🎵 Lipsync: currentTime=${currentAudioTime.toFixed(2)}s, mouthCues=${lipsync.mouthCues.length}`);
+      }
       
       for (let i = 0; i < lipsync.mouthCues.length; i++) {
         const mouthCue = lipsync.mouthCues[i];
@@ -792,10 +808,24 @@ export function Avatar(props) {
             appliedMorphTargets.push(viseme);
             lerpMorphTarget(viseme, 1, 0.2);
             console.log(`👄 Applying viseme: ${mouthCue.value} -> ${viseme} at ${currentAudioTime.toFixed(2)}s`);
+          } else {
+            console.warn(`⚠️ No mapping found for viseme: ${mouthCue.value}`);
           }
           break;
         }
       }
+      
+      // If no viseme is active, ensure we're not stuck with a previous one
+      if (appliedMorphTargets.length === 0) {
+        // Default to closed mouth when no specific viseme is active
+        const defaultViseme = corresponding['A']; // viseme_PP (closed)
+        if (defaultViseme) {
+          appliedMorphTargets.push(defaultViseme);
+          lerpMorphTarget(defaultViseme, 0.3, 0.1); // Subtle closed mouth
+        }
+      }
+    } else if (message && !lipsync) {
+      console.log('⚠️ Message exists but no lipsync data available');
     }
 
     // Reset all mouth shapes that aren't currently active

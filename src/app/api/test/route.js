@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
+const API_BASE = process.env.NEXT_PUBLIC_NEXT_BACK_API || 'http://16.171.47.247:5001';
+
 export async function GET() {
   const routes = [
     '/api/session',
@@ -14,7 +19,7 @@ export async function GET() {
   return NextResponse.json({
     message: 'API proxy routes are active',
     availableRoutes: routes,
-    backend: process.env.NEXT_PUBLIC_NEXT_BACK_API || 'http://16.171.47.247:5001',
+    backend: API_BASE,
     timestamp: new Date().toISOString()
   });
 }

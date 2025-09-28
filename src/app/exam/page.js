@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, Suspense } from "react";
 import { SessionGate } from "@/components/SessionGate";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getTransferredCourseId } from "@/utils/sessionTransfer";
@@ -10,7 +10,7 @@ import { getTransferredCourseId } from "@/utils/sessionTransfer";
 // Make sure to define NEXT_PUBLIC_NEXT_BACK_API in your environment (.env.local):
 // NEXT_PUBLIC_NEXT_BACK_API=https://api.example.com
 
-export default function ExamPage({
+function ExamContent({
   questions = [],
   timeLimit = 15 * 60,
   onSubmit = (res) => console.log("Quiz results", res),
@@ -319,4 +319,17 @@ return (
     </div>
   </SessionGate>
 );
+}
+
+export default function ExamPage(props) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading exam...</p>
+      </div>
+    </div>}>
+      <ExamContent {...props} />
+    </Suspense>
+  );
 }

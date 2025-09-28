@@ -1,6 +1,9 @@
 import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 import { PassThrough } from "stream";
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 export async function GET(req) {
   // WARNING: Do not expose your keys
   // WARNING: If you host publicly your project, add an authentication layer to limit the consumption of Azure resources

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
-import { Lipsync } from "wawa-lipsync";
+// import { Lipsync } from "wawa-lipsync"; // Commented out - using sample visemes instead
 
 const backendUrl = process.env.NEXT_PUBLIC_NEXT_WEB_API;
 
@@ -205,22 +205,25 @@ export const ChatProvider = ({ children }) => {
       hasLipsync: !!data.lipsync
     });
 
-    // Generate lipsync for this individual chunk if not provided by backend
+    // Generate sample lipsync for this individual chunk if not provided by backend
     let chunkLipsync = data.lipsync || null;
     if (!chunkLipsync && data.audio_data) {
-      console.log('🎭 Generating lipsync for individual chunk...');
+      console.log('🎭 Generating sample lipsync for individual chunk...');
       try {
         chunkLipsync = await generateLipsyncData(data.audio_data);
+        console.log('🎭 Generated lipsync for chunk:', chunkLipsync ? `${chunkLipsync.mouthCues?.length} cues` : 'null');
       } catch (error) {
         console.error('❌ Error generating chunk lipsync:', error);
       }
+    } else if (chunkLipsync) {
+      console.log('🎭 Using provided lipsync for chunk:', chunkLipsync.mouthCues?.length, 'cues');
     }
 
     // Create chunk message for Avatar
     const chunkMessage = {
       type: 'audio_chunk',
       text: currentMessageDataRef.current.text,
-      animation: "Idle",
+      animation: "Idle", // Changed from "Idle" to "Talking_1" for speaking animation
       facialExpression: currentMessageDataRef.current.facialExpression || 'smile',
       audio: data.audio_data,
       lipsync: chunkLipsync,
@@ -303,13 +306,19 @@ export const ChatProvider = ({ children }) => {
     return combinedData;
   };
 
-  // Generate lipsync data using wawa-lipsync
+  // Generate sample lipsync data (wawa-lipsync commented out)
   const generateLipsyncData = async (audioBase64) => {
     if (!audioBase64 || typeof audioBase64 !== 'string') {
       console.log('⚠️ No valid audio data for lipsync generation');
       return null;
     }
     
+    console.log('🎵 Generating sample lipsync data...');
+    
+    // Use sample visemes instead of wawa-lipsync
+    return createSampleLipsync(audioBase64);
+    
+    /* COMMENTED OUT - WAWA-LIPSYNC CODE
     // Clean base64 string (remove whitespace but keep valid base64 chars)
     const cleanBase64 = audioBase64.replace(/\s/g, '');
     
@@ -418,38 +427,153 @@ export const ChatProvider = ({ children }) => {
         return createFallbackLipsync(audioBase64);
       }
     }
+    */
   };
 
-  // Create fallback lipsync data when wawa-lipsync fails
+  // Create sample lipsync data with realistic speaking visemes that loop
+  const createSampleLipsync = (audioBase64) => {
+    try {
+      // Estimate audio duration based on base64 length (rough approximation)
+      const estimatedDuration = Math.max(2, audioBase64.length / 50000); // Rough estimate
+      
+      // Create realistic speaking pattern with common visemes
+      const mouthCues = [];
+      
+      // Avatar visemes from Avatar.jsx corresponding mapping
+      const speechVisemes = [
+        'A',    // viseme_PP - Closed mouth (p, b, m)
+        'B',    // viseme_kk - Back consonants (k, g)
+        'C',    // viseme_I - Close vowels (i, e)
+        'D',    // viseme_AA - Open vowels (a, ah)
+        'E',    // viseme_O - Mid-back vowels (o, aw)
+        'F',    // viseme_U - Close back vowels (u, oo)
+        'G',    // viseme_FF - Labiodental (f, v)
+        'H',    // viseme_TH - Dental (th)
+        'X'     // viseme_PP - Closed/silent (pause)
+      ];
+      
+      // Create a base pattern that will repeat throughout the audio
+      const basePattern = [
+        { viseme: 'D', duration: 0.15 }, // Open vowel
+        { viseme: 'A', duration: 0.1 },  // Closed
+        { viseme: 'C', duration: 0.12 }, // Close vowel
+        { viseme: 'G', duration: 0.08 }, // Labiodental
+        { viseme: 'E', duration: 0.13 }, // Mid-back vowel
+        { viseme: 'B', duration: 0.09 }, // Back consonant
+        { viseme: 'F', duration: 0.11 }, // Close back vowel
+        { viseme: 'H', duration: 0.07 }, // Dental
+        { viseme: 'A', duration: 0.05 }, // Brief pause
+        { viseme: 'D', duration: 0.14 }, // Open vowel again
+      ];
+      
+      // Calculate total pattern duration
+      const patternDuration = basePattern.reduce((sum, item) => sum + item.duration, 0);
+      console.log('🎭 Base pattern duration:', patternDuration.toFixed(2), 'seconds');
+      
+      // Repeat the pattern to fill the entire audio duration
+      let currentTime = 0;
+      let patternIndex = 0;
+      
+      while (currentTime < estimatedDuration) {
+        const currentItem = basePattern[patternIndex % basePattern.length];
+        const segmentEnd = Math.min(currentTime + currentItem.duration, estimatedDuration);
+        
+        mouthCues.push({
+          start: currentTime,
+          end: segmentEnd,
+          value: currentItem.viseme
+        });
+        
+        currentTime = segmentEnd;
+        patternIndex++;
+        
+        // Safety check to prevent infinite loop
+        if (mouthCues.length > 1000) {
+          console.warn('⚠️ Too many mouth cues generated, stopping at 1000');
+          break;
+        }
+      }
+      
+      // Add some random pauses for natural speech rhythm
+      const numPauses = Math.floor(mouthCues.length / 15); // Every 15th cue approximately
+      for (let i = 0; i < numPauses; i++) {
+        const pauseIndex = Math.floor(Math.random() * mouthCues.length);
+        if (mouthCues[pauseIndex]) {
+          mouthCues[pauseIndex].value = 'X'; // Closed mouth for pause
+        }
+      }
+      
+      console.log('🎭 Created looping lipsync with', mouthCues.length, 'mouth cues for', estimatedDuration.toFixed(2), 'seconds');
+      console.log('🎭 Pattern repeats:', Math.ceil(estimatedDuration / patternDuration), 'times');
+      console.log('🎭 First few visemes:', mouthCues.slice(0, 10).map(cue => `${cue.value}(${cue.start.toFixed(2)}-${cue.end.toFixed(2)})`).join(', '));
+      
+      const lipsyncData = {
+        mouthCues: mouthCues,
+        metadata: {
+          duration: estimatedDuration,
+          type: 'looping_sample',
+          visemeCount: mouthCues.length,
+          patternRepeats: Math.ceil(estimatedDuration / patternDuration)
+        }
+      };
+      
+      // Verify all visemes are valid
+      const invalidVisemes = mouthCues.filter(cue => !['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'X'].includes(cue.value));
+      if (invalidVisemes.length > 0) {
+        console.error('❌ Invalid visemes found:', invalidVisemes);
+      }
+      
+      return lipsyncData;
+    } catch (error) {
+      console.error('❌ Error creating sample lipsync:', error);
+      return null;
+    }
+  };
+
+  // Create fallback lipsync data with looping (kept for compatibility)
   const createFallbackLipsync = (audioBase64) => {
     try {
       // Estimate audio duration based on base64 length (rough approximation)
       const estimatedDuration = Math.max(1, audioBase64.length / 50000); // Rough estimate
       
-      // Create basic mouth movement pattern
+      // Create basic looping mouth movement pattern
       const mouthCues = [];
-      const visemes = ['A', 'E', 'I', 'O', 'U', 'B', 'C', 'D']; // Basic viseme set
-      const segmentDuration = estimatedDuration / 8; // Divide into segments
+      const visemes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']; // Avatar viseme set from Avatar.jsx
+      const segmentDuration = 0.125; // 8 visemes per second for smooth animation
       
-      for (let i = 0; i < 8; i++) {
-        const start = i * segmentDuration;
-        const end = (i + 1) * segmentDuration;
-        const viseme = visemes[i % visemes.length];
+      let currentTime = 0;
+      let visemeIndex = 0;
+      
+      // Loop through visemes until we cover the entire audio duration
+      while (currentTime < estimatedDuration) {
+        const start = currentTime;
+        const end = Math.min(currentTime + segmentDuration, estimatedDuration);
+        const viseme = visemes[visemeIndex % visemes.length];
         
         mouthCues.push({
           start: start,
           end: end,
           value: viseme
         });
+        
+        currentTime = end;
+        visemeIndex++;
+        
+        // Safety check
+        if (mouthCues.length > 500) {
+          console.warn('⚠️ Too many fallback cues, stopping at 500');
+          break;
+        }
       }
       
-      console.log('🎭 Created fallback lipsync with', mouthCues.length, 'mouth cues');
+      console.log('🎭 Created looping fallback lipsync with', mouthCues.length, 'mouth cues for', estimatedDuration.toFixed(2), 'seconds');
       
       return {
         mouthCues: mouthCues,
         metadata: {
           duration: estimatedDuration,
-          type: 'fallback'
+          type: 'looping_fallback',
+          visemeCount: mouthCues.length
         }
       };
     } catch (error) {

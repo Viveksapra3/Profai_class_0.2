@@ -27,7 +27,9 @@ export const ChatProvider = ({ children }) => {
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [cameraZoomed, setCameraZoomed] = useState(true);
-  const [playerCommand, setPlayerCommand] = useState(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  // TEACH MODE - COMMENTED OUT
+  // const [playerCommand, setPlayerCommand] = useState(null);
   
   // WebSocket state
   const [isConnected, setIsConnected] = useState(false);
@@ -775,45 +777,46 @@ export const ChatProvider = ({ children }) => {
     });
   }, [isConnected]);
 
-  const startClass = useCallback((courseId, moduleIndex, subTopicIndex, language = 'en-IN') => {
-    if (!courseId && courseId !== 0) return;
-    if (!isConnected || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      console.error('WebSocket not connected');
-      return;
-    }
+  // TEACH MODE - COMMENTED OUT
+  // const startClass = useCallback((courseId, moduleIndex, subTopicIndex, language = 'en-IN') => {
+  //   if (!courseId && courseId !== 0) return;
+  //   if (!isConnected || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+  //     console.error('WebSocket not connected');
+  //     return;
+  //   }
 
-    try {
-      const message = {
-        type: 'start_class',
-        course_id: courseId,
-        module_index: moduleIndex,
-        sub_topic_index: subTopicIndex,
-        language: language,
-        request_id: `class_${Date.now()}`,
-      };
-      const messageString = JSON.stringify(message);
-      console.log('📤 Starting class via WebSocket:', message);
-      wsRef.current.send(messageString);
-    } catch (err) {
-      console.error('WebSocket send error:', err);
-    }
-  }, [isConnected]);
+  //   try {
+  //     const message = {
+  //       type: 'start_class',
+  //       course_id: courseId,
+  //       module_index: moduleIndex,
+  //       sub_topic_index: subTopicIndex,
+  //       language: language,
+  //       request_id: `class_${Date.now()}`,
+  //     };
+  //     const messageString = JSON.stringify(message);
+  //     console.log('📤 Starting class via WebSocket:', message);
+  //     wsRef.current.send(messageString);
+  //   } catch (err) {
+  //     console.error('WebSocket send error:', err);
+  //   }
+  // }, [isConnected]);
 
-  const pausePlayback = useCallback(() => {
-    setPlayerCommand({ type: 'pause', ts: Date.now() });
-  }, []);
+  // const pausePlayback = useCallback(() => {
+  //   setPlayerCommand({ type: 'pause', ts: Date.now() });
+  // }, []);
 
-  const resumePlayback = useCallback(() => {
-    setPlayerCommand({ type: 'resume', ts: Date.now() });
-  }, []);
+  // const resumePlayback = useCallback(() => {
+  //   setPlayerCommand({ type: 'resume', ts: Date.now() });
+  // }, []);
 
-  const stopPlayback = useCallback(() => {
-    setPlayerCommand({ type: 'stop', ts: Date.now() });
-    setMessages([]);
-    setAudioChunks([]);
-    audioQueueRef.current = [];
-    currentMessageDataRef.current = null;
-  }, []);
+  // const stopPlayback = useCallback(() => {
+  //   setPlayerCommand({ type: 'stop', ts: Date.now() });
+  //   setMessages([]);
+  //   setAudioChunks([]);
+  //   audioQueueRef.current = [];
+  //   currentMessageDataRef.current = null;
+  // }, []);
 
   // Voice transcription function
   const transcribeAudio = useCallback((audioBlob, language = 'en-IN') => {
@@ -901,8 +904,10 @@ export const ChatProvider = ({ children }) => {
   useEffect(() => {
     if (messages.length > 0) {
       setMessage(messages[0]);
+      setIsAudioPlaying(true);
     } else {
       setMessage(null);
+      setIsAudioPlaying(false);
     }
   }, [messages]);
 
@@ -917,6 +922,7 @@ export const ChatProvider = ({ children }) => {
         loading,
         cameraZoomed,
         setCameraZoomed,
+        isAudioPlaying,
         
         // WebSocket values
         isConnected,
@@ -927,11 +933,12 @@ export const ChatProvider = ({ children }) => {
         disconnectWebSocket,
         transcribeAudio,
         stopAudioPlayback,
-        startClass,
-        pausePlayback,
-        resumePlayback,
-        stopPlayback,
-        playerCommand,
+        // TEACH MODE - COMMENTED OUT
+        // startClass,
+        // pausePlayback,
+        // resumePlayback,
+        // stopPlayback,
+        // playerCommand,
         
         // Language configuration
         supportedLanguages: SUPPORTED_LANGUAGES,

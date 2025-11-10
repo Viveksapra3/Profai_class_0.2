@@ -49,7 +49,7 @@ import { useChat, SUPPORTED_LANGUAGES } from "@/hooks/useChat";
 export const Experience = () => {
   const teacher = useAITeacher((state) => state.teacher);
   const classroom = useAITeacher((state) => state.classroom);
-  const { chat, loading, chatHistory, setChatHistory } = useChat();
+  const { chat, loading, chatHistory, setChatHistory, isAudioPlaying } = useChat();
 
   // Chat UI state
   const [selectedLanguage, setSelectedLanguage] = useState("en-IN");
@@ -343,15 +343,15 @@ export const Experience = () => {
               placeholder="Type your question..."
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") sendQuestion(); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && !loading && !isAudioPlaying) sendQuestion(); }}
             />
             <button
-              className={`px-5 py-2 rounded-full text-white border border-white/20 ${loading ? "bg-white/20 cursor-not-allowed" : "bg-slate-100/20 hover:bg-slate-100/30"}`}
+              className={`px-5 py-2 rounded-full text-white border border-white/20 ${(loading || isAudioPlaying) ? "bg-white/20 cursor-not-allowed" : "bg-slate-100/20 hover:bg-slate-100/30"}`}
               onClick={sendQuestion}
-              disabled={loading}
-              title={loading ? "Sending..." : "Ask"}
+              disabled={loading || isAudioPlaying}
+              title={loading ? "Sending..." : isAudioPlaying ? "Playing audio..." : "Ask"}
             >
-              {loading ? "Sending..." : "Ask"}
+              {loading ? "Sending..." : isAudioPlaying ? "Playing..." : "Ask"}
             </button>
           </div>
           </div>

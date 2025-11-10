@@ -487,7 +487,9 @@ let setupMode = false;
 export function Avatar(props) {
   const { nodes, materials, scene } = useGLTF("/models/av.glb");
 
-  const { message, onMessagePlayed, chat, playerCommand } = useChat();
+  const { message, onMessagePlayed, chat } = useChat();
+  // TEACH MODE - COMMENTED OUT
+  // const { message, onMessagePlayed, chat, playerCommand } = useChat();
 
   const [lipsync, setLipsync] = useState();
 
@@ -962,27 +964,28 @@ export function Avatar(props) {
     return () => clearTimeout(blinkTimeout);
   }, []);
 
-  useEffect(() => {
-    if (!playerCommand) return;
-    if (playerCommand.type === 'pause') {
-      if (audio) {
-        try { audio.pause(); } catch (e) {}
-      }
-    } else if (playerCommand.type === 'resume') {
-      if (audio) {
-        try { audio.play(); } catch (e) {}
-      }
-    } else if (playerCommand.type === 'stop') {
-      if (audio) {
-        try {
-          audio.pause();
-          audio.currentTime = 0;
-        } catch (e) {}
-      }
-      setAnimation("Idle");
-      setLipsync(null);
-    }
-  }, [playerCommand, audio]);
+  // TEACH MODE - COMMENTED OUT
+  // useEffect(() => {
+  //   if (!playerCommand) return;
+  //   if (playerCommand.type === 'pause') {
+  //     if (audio) {
+  //       try { audio.pause(); } catch (e) {}
+  //     }
+  //   } else if (playerCommand.type === 'resume') {
+  //     if (audio) {
+  //       try { audio.play(); } catch (e) {}
+  //     }
+  //   } else if (playerCommand.type === 'stop') {
+  //     if (audio) {
+  //       try {
+  //         audio.pause();
+  //         audio.currentTime = 0;
+  //       } catch (e) {}
+  //     }
+  //     setAnimation("Idle");
+  //     setLipsync(null);
+  //   }
+  // }, [playerCommand, audio]);
 
   return (
     <group {...props} dispose={null} ref={group}>

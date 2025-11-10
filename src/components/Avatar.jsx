@@ -106,7 +106,7 @@
 //     "/models/av.glb"
 //   );
 
-//   const { message, onMessagePlayed, chat } = useChat();
+//   const { message, onMessagePlayed, chat, playerCommand } = useChat();
 
 //   const [lipsync, setLipsync] = useState();
 
@@ -487,7 +487,7 @@ let setupMode = false;
 export function Avatar(props) {
   const { nodes, materials, scene } = useGLTF("/models/av.glb");
 
-  const { message, onMessagePlayed, chat } = useChat();
+  const { message, onMessagePlayed, chat, playerCommand } = useChat();
 
   const [lipsync, setLipsync] = useState();
 
@@ -530,6 +530,33 @@ export function Avatar(props) {
           console.log('🔊 Playing audio chunk:', message.sequence);
           
           audio.oncanplaythrough = () => {
+            try {
+              // Scale lipsync timing to match the actual audio duration
+              if (message.lipsync && isFinite(audio.duration) && audio.duration > 0) {
+                const cues = message.lipsync.mouthCues || [];
+                const lastEnd = cues.length > 0 ? cues[cues.length - 1].end : (message.lipsync.metadata?.duration || 0);
+                const srcDuration = lastEnd > 0 ? lastEnd : (message.lipsync.metadata?.duration || 0);
+                if (srcDuration > 0) {
+                  const scale = audio.duration / srcDuration;
+                  const scaledCues = cues.map(cue => ({
+                    start: cue.start * scale,
+                    end: Math.max(cue.start * scale, cue.end * scale),
+                    value: cue.value
+                  }));
+                  setLipsync({
+                    ...message.lipsync,
+                    mouthCues: scaledCues,
+                    metadata: {
+                      ...(message.lipsync.metadata || {}),
+                      duration: audio.duration,
+                      type: ((message.lipsync.metadata?.type) || 'sample') + '_scaled'
+                    }
+                  });
+                }
+              }
+            } catch (scaleErr) {
+              console.warn('Lipsync scaling failed:', scaleErr);
+            }
             audio.play().catch(e => {
               console.error('Audio chunk play failed:', e);
               onMessagePlayed();
@@ -789,7 +816,7 @@ export function Avatar(props) {
     }
 
     const appliedMorphTargets = [];
-    if (message && lipsync && lipsync.mouthCues && audio && !audio.paused && !audio.ended) {
+    if (message && lipsync && lipsync.mouthCues && audio) {
       const currentAudioTime = audio.currentTime;
       
       // Only log every 10th frame to reduce console spam
@@ -934,6 +961,28 @@ export function Avatar(props) {
     nextBlink();
     return () => clearTimeout(blinkTimeout);
   }, []);
+
+  useEffect(() => {
+    if (!playerCommand) return;
+    if (playerCommand.type === 'pause') {
+      if (audio) {
+        try { audio.pause(); } catch (e) {}
+      }
+    } else if (playerCommand.type === 'resume') {
+      if (audio) {
+        try { audio.play(); } catch (e) {}
+      }
+    } else if (playerCommand.type === 'stop') {
+      if (audio) {
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+        } catch (e) {}
+      }
+      setAnimation("Idle");
+      setLipsync(null);
+    }
+  }, [playerCommand, audio]);
 
   return (
     <group {...props} dispose={null} ref={group}>

@@ -27,6 +27,7 @@ export const ChatProvider = ({ children }) => {
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [cameraZoomed, setCameraZoomed] = useState(true);
+  const [playerCommand, setPlayerCommand] = useState(null);
   
   // WebSocket state
   const [isConnected, setIsConnected] = useState(false);
@@ -48,36 +49,36 @@ export const ChatProvider = ({ children }) => {
 
   // Convert HTTP backend URL to WebSocket URL
   const getWebSocketUrl = () => {
-    try {
-    if (typeof window !== "undefined" && window.location && window.location.host) {
-      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-      // use same-host under /ws/ path
-      return `${proto}//${window.location.host}/ws/`;
-    }
-  } catch (e) {
-    // fall through to env parsing
-    console.warn("Could not build same-origin WS URL, will try env:", e);
-  }
+    return backendUrl;
+  //   try {
+  //   if (typeof window !== "undefined" && window.location && window.location.host) {
+  //     const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  //     // use same-host under /ws/ path
+  //     return `${proto}//${window.location.host}/ws/`;
+  //   }
+  // } catch (e) {
+  //   // fall through to env parsing
+  //   console.warn("Could not build same-origin WS URL, will try env:", e);
+  // }
 
-  // Fallback: parse the backendUrl env var if present
-  if (backendUrl) {
-    try {
-      // If env already contains ws:// or wss://, use it as-is
-      if (/^wss?:\/\//i.test(backendUrl)) {
-        return backendUrl;
-      }
-      // If env contains http(s)://host:port or host:port, convert to ws(s) accordingly
-      const maybe = backendUrl.startsWith("http") ? new URL(backendUrl) : new URL(`http://${backendUrl}`);
-      const wsProto = maybe.protocol === "https:" ? "wss:" : "ws:";
-      const path = maybe.pathname && maybe.pathname !== "/" ? maybe.pathname.replace(/\/+$/, "") : "";
-      return `${wsProto}//${maybe.host}${path}/`;
-    } catch (err) {
-      console.error("Error parsing NEXT_PUBLIC_NEXT_WEB_API for websocket, falling back to localhost:", err);
-    }
-  }
-
-  // last resort (dev)
-  return (typeof window !== "undefined" && window.location && window.location.protocol === "https:") ? "wss://localhost:8765/" : "ws://localhost:8765/";
+  // // Fallback: parse the backendUrl env var if present
+  // if (backendUrl) {
+  //   try {
+  //     // If env already contains ws:// or wss://, use it as-is
+  //     if (/^wss?:\/\//i.test(backendUrl)) {
+  //       return backendUrl;
+  //     }
+  //     // If env contains http(s)://host:port or host:port, convert to ws(s) accordingly
+  //     const maybe = backendUrl.startsWith("http") ? new URL(backendUrl) : new URL(`http://${backendUrl}`);
+  //     const wsProto = maybe.protocol === "https:" ? "wss:" : "ws:";
+  //     const path = maybe.pathname && maybe.pathname !== "/" ? maybe.pathname.replace(/\/+$/, "") : "";
+  //     return `${wsProto}//${maybe.host}${path}/`;
+  //   } catch (err) {
+  //     console.error("Error parsing NEXT_PUBLIC_NEXT_WEB_API for websocket, falling back to localhost:", err);
+  //   }
+  // }
+  // // last resort (dev)
+  // return (typeof window !== "undefined" && window.location && window.location.protocol === "https:") ? "wss://localhost:8765/" : "ws://localhost:8765/";
 };
 
   // WebSocket message handlers
@@ -774,6 +775,46 @@ export const ChatProvider = ({ children }) => {
     });
   }, [isConnected]);
 
+  const startClass = useCallback((courseId, moduleIndex, subTopicIndex, language = 'en-IN') => {
+    if (!courseId && courseId !== 0) return;
+    if (!isConnected || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.error('WebSocket not connected');
+      return;
+    }
+
+    try {
+      const message = {
+        type: 'start_class',
+        course_id: courseId,
+        module_index: moduleIndex,
+        sub_topic_index: subTopicIndex,
+        language: language,
+        request_id: `class_${Date.now()}`,
+      };
+      const messageString = JSON.stringify(message);
+      console.log('📤 Starting class via WebSocket:', message);
+      wsRef.current.send(messageString);
+    } catch (err) {
+      console.error('WebSocket send error:', err);
+    }
+  }, [isConnected]);
+
+  const pausePlayback = useCallback(() => {
+    setPlayerCommand({ type: 'pause', ts: Date.now() });
+  }, []);
+
+  const resumePlayback = useCallback(() => {
+    setPlayerCommand({ type: 'resume', ts: Date.now() });
+  }, []);
+
+  const stopPlayback = useCallback(() => {
+    setPlayerCommand({ type: 'stop', ts: Date.now() });
+    setMessages([]);
+    setAudioChunks([]);
+    audioQueueRef.current = [];
+    currentMessageDataRef.current = null;
+  }, []);
+
   // Voice transcription function
   const transcribeAudio = useCallback((audioBlob, language = 'en-IN') => {
     if (!isConnected || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
@@ -886,6 +927,11 @@ export const ChatProvider = ({ children }) => {
         disconnectWebSocket,
         transcribeAudio,
         stopAudioPlayback,
+        startClass,
+        pausePlayback,
+        resumePlayback,
+        stopPlayback,
+        playerCommand,
         
         // Language configuration
         supportedLanguages: SUPPORTED_LANGUAGES,

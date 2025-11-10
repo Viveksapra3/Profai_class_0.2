@@ -60,10 +60,21 @@ export const Experience = () => {
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [coursesLoading, setCoursesLoading] = useState(false);
+  const chatHistoryRef = useRef(null);
 
   const selectedLanguageLabel = useMemo(() => {
     return SUPPORTED_LANGUAGES.find((l) => l.code === selectedLanguage)?.name || "English";
   }, [selectedLanguage]);
+
+  // Auto-scroll chat to bottom when new messages arrive
+  useEffect(() => {
+    if (chatHistoryRef.current) {
+      chatHistoryRef.current.scrollTo({
+        top: chatHistoryRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [chatHistory, loading]);
 
   const sendQuestion = async () => {
     const q = question.trim();
@@ -229,10 +240,23 @@ export const Experience = () => {
       {isChatVisible && (
         <div className="z-10 fixed top-4 right-4 bottom-4 w-full sm:w-[380px] md:w-[420px] flex">
           <div className="flex h-full w-full flex-col bg-gradient-to-tr from-slate-600 via-gray-600 to-slate-600 border border-slate-100 shadow-xl rounded-xl">
-            {/* Controls row with hide button */}
-            <div className="p-4 border-b border-white/10">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-white/90 text-lg font-semibold">Chat</h3>
+            {/* Controls row with language selector and hide button */}
+            <div className="p-3 border-b border-white/10">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-white/80 text-sm">Language:</label>
+                  <select
+                    className="bg-slate-900/60 text-white px-3 py-2 rounded-md border border-white/20 text-sm"
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                  >
+                    {SUPPORTED_LANGUAGES.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <button
                   onClick={() => setIsChatVisible(false)}
                   className="text-white/60 hover:text-white/90 p-1 rounded transition-colors"
@@ -243,29 +267,17 @@ export const Experience = () => {
                   </svg>
                 </button>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <label className="text-white/80 text-sm">Language:</label>
-                  <select
-                    className="bg-slate-900/60 text-white px-3 py-2 rounded-md border border-white/20"
-                    value={selectedLanguage}
-                    onChange={(e) => setSelectedLanguage(e.target.value)}
-                >
-                  {SUPPORTED_LANGUAGES.map((lang) => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.name}
-                    </option>
-                  ))}
-                </select>
-                {/* <span className="text-xs text-white/60">Selected: {selectedLanguageLabel}</span> */}
-              </div>
-              <div className="text-xs text-white/60 hidden sm:block">
-              </div>
             </div>
-          </div>
 
           {/* Chat history (fills available space) */}
-          <div className="flex-1 overflow-y-auto bg-black/20 p-3 border-b border-white/10">
+          <div 
+            ref={chatHistoryRef} 
+            className="chat-scrollbar flex-1 overflow-y-auto bg-black/20 p-3 border-b border-white/10"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.1)'
+            }}
+          >
             {chatHistory.length === 0 ? (
               <div className="text-white/50 text-sm">No messages yet. Ask something below.</div>
             ) : (
@@ -284,6 +296,21 @@ export const Experience = () => {
                     </div>
                   </div>
                 ))}
+                {/* Thinking indicator when loading */}
+                {loading && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] px-3 py-2 rounded-xl text-sm shadow border bg-white/10 text-white border-white/10">
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1">
+                          <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
+                          <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
+                          <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+                        </div>
+                        <span className="text-white/70 text-xs">thinking for better answer...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

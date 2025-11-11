@@ -15,8 +15,6 @@ function TeachControls() {
     connectionStatus,
   } = useChat();
 
-  const API_BASE = process.env.NEXT_PUBLIC_NEXT_BACK_API;
-
   const [open, setOpen] = useState(false);
   const [courseDetails, setCourseDetails] = useState(null);
   const [courseName, setCourseName] = useState("");
@@ -44,7 +42,7 @@ function TeachControls() {
   }, []);
 
   useEffect(() => {
-    if (!API_BASE || !selectedCourseId) {
+    if (!selectedCourseId) {
       setCourseDetails(null);
       setCourseName("");
       setSelectedModuleIndex("");
@@ -54,7 +52,11 @@ function TeachControls() {
     const loadDetails = async () => {
       try {
         setStatus("Loading course details...");
-        const res = await fetch(`${API_BASE}/api/course/${selectedCourseId}`);
+        // Use Next.js API proxy to avoid mixed content issues
+        const res = await fetch(`/api/course/${encodeURIComponent(selectedCourseId)}`, {
+          method: "GET",
+          credentials: "include",
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const details = await res.json();
         setCourseDetails(details);
@@ -65,7 +67,7 @@ function TeachControls() {
       }
     };
     loadDetails();
-  }, [API_BASE, selectedCourseId]);
+  }, [selectedCourseId]);
 
   const modules = courseDetails?.modules || [];
   const selectedModule = useMemo(() => {

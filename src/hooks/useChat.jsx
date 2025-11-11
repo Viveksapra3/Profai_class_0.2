@@ -35,7 +35,7 @@ export const ChatProvider = ({ children }) => {
   const [connectionStatus, setConnectionStatus] = useState('disconnected'); // 'connected', 'connecting', 'disconnected', 'reconnecting'
   const [audioChunks, setAudioChunks] = useState([]);
   const [chatHistory, setChatHistory] = useState([
-    { role: 'assistant', text: 'Hello! How can I assist you today?' }
+    { role: 'assistant', text: 'Hello, I am your AI professor. I will be referencing the provided book and will limit my responses to the context of that book, without drawing from any external sources.' }
   ]); // For Experience component chat display
   const wsRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);

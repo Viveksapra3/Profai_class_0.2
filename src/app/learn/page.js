@@ -15,7 +15,7 @@ function TeachControls() {
     connectionStatus,
   } = useChat();
 
-  const API_BASE = process.env.NEXT_PUBLIC_NEXT_BACK3_API;
+  const API_BASE = process.env.NEXT_PUBLIC_NEXT_BACK_API;
 
   const [open, setOpen] = useState(false);
   const [courseDetails, setCourseDetails] = useState(null);

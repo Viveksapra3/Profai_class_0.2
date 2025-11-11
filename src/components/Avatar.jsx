@@ -487,9 +487,7 @@ let setupMode = false;
 export function Avatar(props) {
   const { nodes, materials, scene } = useGLTF("/models/av.glb");
 
-  const { message, onMessagePlayed, chat } = useChat();
-  // TEACH MODE - COMMENTED OUT
-  // const { message, onMessagePlayed, chat, playerCommand } = useChat();
+  const { message, onMessagePlayed, chat, playerCommand } = useChat();
 
   const [lipsync, setLipsync] = useState();
 
@@ -528,18 +526,31 @@ export function Avatar(props) {
       // Play audio chunk immediately
       if (message.audio) {
         try {
-          const audio = new Audio("data:audio/mp3;base64," + message.audio);
+          // Stop and cleanup previous audio if it exists
+          if (audio) {
+            try {
+              audio.pause();
+              audio.currentTime = 0;
+              audio.onended = null;
+              audio.onerror = null;
+              audio.oncanplaythrough = null;
+            } catch (e) {
+              console.warn('Error cleaning up previous audio:', e);
+            }
+          }
+          
+          const newAudio = new Audio("data:audio/mp3;base64," + message.audio);
           console.log('🔊 Playing audio chunk:', message.sequence);
           
-          audio.oncanplaythrough = () => {
+          newAudio.oncanplaythrough = () => {
             try {
               // Scale lipsync timing to match the actual audio duration
-              if (message.lipsync && isFinite(audio.duration) && audio.duration > 0) {
+              if (message.lipsync && isFinite(newAudio.duration) && newAudio.duration > 0) {
                 const cues = message.lipsync.mouthCues || [];
                 const lastEnd = cues.length > 0 ? cues[cues.length - 1].end : (message.lipsync.metadata?.duration || 0);
                 const srcDuration = lastEnd > 0 ? lastEnd : (message.lipsync.metadata?.duration || 0);
                 if (srcDuration > 0) {
-                  const scale = audio.duration / srcDuration;
+                  const scale = newAudio.duration / srcDuration;
                   const scaledCues = cues.map(cue => ({
                     start: cue.start * scale,
                     end: Math.max(cue.start * scale, cue.end * scale),
@@ -550,7 +561,7 @@ export function Avatar(props) {
                     mouthCues: scaledCues,
                     metadata: {
                       ...(message.lipsync.metadata || {}),
-                      duration: audio.duration,
+                      duration: newAudio.duration,
                       type: ((message.lipsync.metadata?.type) || 'sample') + '_scaled'
                     }
                   });
@@ -559,25 +570,25 @@ export function Avatar(props) {
             } catch (scaleErr) {
               console.warn('Lipsync scaling failed:', scaleErr);
             }
-            audio.play().catch(e => {
+            newAudio.play().catch(e => {
               console.error('Audio chunk play failed:', e);
               onMessagePlayed();
             });
           };
           
-          audio.onended = () => {
+          newAudio.onended = () => {
             console.log('🔊 Audio chunk ended:', message.sequence);
             // Don't reset animation/lipsync immediately for chunks
             // Let the next chunk or completion handle it
             onMessagePlayed();
           };
           
-          audio.onerror = (e) => {
+          newAudio.onerror = (e) => {
             console.error('Audio chunk error:', e);
             onMessagePlayed();
           };
           
-          setAudio(audio);
+          setAudio(newAudio);
         } catch (error) {
           console.error('Error creating audio chunk:', error);
           onMessagePlayed();
@@ -597,29 +608,42 @@ export function Avatar(props) {
     // Handle audio playback for complete messages
     if (message.audio && !message.isTextOnly) {
       try {
-        const audio = new Audio("data:audio/mp3;base64," + message.audio);
+        // Stop and cleanup previous audio if it exists
+        if (audio) {
+          try {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.onended = null;
+            audio.onerror = null;
+            audio.oncanplaythrough = null;
+          } catch (e) {
+            console.warn('Error cleaning up previous audio:', e);
+          }
+        }
+        
+        const newAudio = new Audio("data:audio/mp3;base64," + message.audio);
         console.log('🔊 Playing complete audio message');
         
-        audio.oncanplaythrough = () => {
-          audio.play().catch(e => {
+        newAudio.oncanplaythrough = () => {
+          newAudio.play().catch(e => {
             console.error('Audio play failed:', e);
             setTimeout(onMessagePlayed, 2000);
           });
         };
         
-        audio.onended = () => {
+        newAudio.onended = () => {
           console.log('🔊 Complete audio ended, calling onMessagePlayed');
           setAnimation("Idle");
           setLipsync(null);
           onMessagePlayed();
         };
         
-        audio.onerror = (e) => {
+        newAudio.onerror = (e) => {
           console.error('Audio error:', e);
           setTimeout(onMessagePlayed, 1000);
         };
         
-        setAudio(audio);
+        setAudio(newAudio);
       } catch (error) {
         console.error('Error creating audio:', error);
         setTimeout(onMessagePlayed, 1000);
@@ -964,28 +988,34 @@ export function Avatar(props) {
     return () => clearTimeout(blinkTimeout);
   }, []);
 
-  // TEACH MODE - COMMENTED OUT
-  // useEffect(() => {
-  //   if (!playerCommand) return;
-  //   if (playerCommand.type === 'pause') {
-  //     if (audio) {
-  //       try { audio.pause(); } catch (e) {}
-  //     }
-  //   } else if (playerCommand.type === 'resume') {
-  //     if (audio) {
-  //       try { audio.play(); } catch (e) {}
-  //     }
-  //   } else if (playerCommand.type === 'stop') {
-  //     if (audio) {
-  //       try {
-  //         audio.pause();
-  //         audio.currentTime = 0;
-  //       } catch (e) {}
-  //     }
-  //     setAnimation("Idle");
-  //     setLipsync(null);
-  //   }
-  // }, [playerCommand, audio]);
+  useEffect(() => {
+    if (!playerCommand) return;
+    if (playerCommand.type === 'pause') {
+      if (audio) {
+        try { audio.pause(); } catch (e) {}
+      }
+    } else if (playerCommand.type === 'resume') {
+      if (audio) {
+        try { audio.play(); } catch (e) {}
+      }
+    } else if (playerCommand.type === 'stop') {
+      if (audio) {
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.onended = null;
+          audio.onerror = null;
+          audio.oncanplaythrough = null;
+          audio.src = '';
+        } catch (e) {
+          console.warn('Error stopping audio:', e);
+        }
+      }
+      setAudio(null);
+      setAnimation("Idle");
+      setLipsync(null);
+    }
+  }, [playerCommand, audio]);
 
   return (
     <group {...props} dispose={null} ref={group}>

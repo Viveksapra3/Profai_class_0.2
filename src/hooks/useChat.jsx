@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 // import { Lipsync } from "wawa-lipsync"; // Commented out - using sample visemes instead
 
-const backendUrl = process.env.NEXT_PUBLIC_NEXT_BACK_API || 'http://16.171.47.247:5001';
+const backendUrl = process.env.NEXT_PUBLIC_NEXT_WEB_API;
 
 // Supported Languages Configuration
 export const SUPPORTED_LANGUAGES = [
